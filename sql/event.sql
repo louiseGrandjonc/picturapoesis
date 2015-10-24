@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS event_keyword (
      id serial,
-     name varchar(250) NOT NULL UNIQUE
-     CONTRAINT event_hashtags_pkey PRIMARY KEY (id)
+     name varchar(250) NOT NULL,
+     lookup tsvector NOT NULL UNIQUE,
+     CONSTRAINT event_keyword_pkey PRIMARY KEY (id)
 );
 
 
@@ -13,12 +14,14 @@ CREATE TABLE IF NOT EXISTS event_exhibition (
     date_end time,
     description text,
     title varchar(250),
-    CONTRAINT event_event_pkey PRIMARY KEY (id)
-)
+    lang varchar(10),
+    CONSTRAINT event_exhibition_pkey PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS event_exhibition_keyword (
     id serial,
     event_id INTEGER NOT NULL REFERENCES "event_exhibition" ("id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    hashtag_id INTEGER NOT NULL REFERENCES "event_keyword" ("id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    UNIQUE(event_id, hashtag_id)
-    CONTRAINT event_event_hashtags_pkey PRIMARY KEY (id)
+    keyword_id INTEGER NOT NULL REFERENCES "event_keyword" ("id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    UNIQUE(event_id, keyword_id),
+    CONSTRAINT event_exhibition_keyword_pkey PRIMARY KEY (id)
 );

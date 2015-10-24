@@ -16,12 +16,13 @@ INSERT INTO place_place (
     url,
     agenda_url,
     name,
-    last_watch)
+    last_watched,
+    default_lang)
 VALUES (
     1,
     1,
     'TODO',
-    'http://www.mam.paris.fr/fr',
+    'http://www.mam.paris.fr',
     'http://www.mam.paris.fr/fr/expositions',
     'Musée Art Moderne',
     now());
@@ -33,9 +34,11 @@ INSERT INTO place_museum (
    id,
    schedule,
    place_id,
-   exhibition_regex)
+   exhibition_regex,
+   default_lang)
 VALUES (
     1,
     '{{"10:00:00", "18:00:00"}, {NULL, NULL}, {"10:00:00", "18:00:00"},  {"10:00:00", "18:00:00"},  {"10:00:00", "22:00:00"},  {"10:00:00", "18:00:00"},{"10:00:00", "18:00:00"}}',
     1,
-    '"\/fr\/expositions\/exposition-([^"]*)"');
+    '"\/fr\/expositions\/exposition-([^"]*)"',
+    'fr');

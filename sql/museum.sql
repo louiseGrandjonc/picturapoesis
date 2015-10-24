@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS place_place (
     infos text,
     url varchar(250) NOT NULL,
     agenda_url varchar(250) NOT NULL,
-    last_watch timestamp,
+    last_watched timestamp,
     image varchar(250),
     name varchar(250),
     CONSTRAINT place_place_pkey PRIMARY KEY (id)
@@ -24,5 +24,6 @@ CREATE TABLE IF NOT EXISTS place_museum (
     place_id INTEGER REFERENCES "place_place" ("id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
     exhibition_regex varchar(250),
     tag_regex varchar(250),
+    lang varchar(10),
     CONSTRAINT place_museum_pkey PRIMARY KEY (id)
 );

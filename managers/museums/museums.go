@@ -5,13 +5,51 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"github.com/picturapoesis/constants"
-	"github.com/picturapoesis/databases"
+	"github.com/picturapoesis/databases/fields"
 	"github.com/picturapoesis/models"
-	"io/ioutil"
-	"net/http"
-	"regexp"
 	"time"
 )
+
+func GetPlace(i int) (models.Place, error) {
+
+	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
+		constants.DB_USER, constants.DB_PASSWORD, constants.DB_NAME)
+	db, err := sql.Open("postgres", dbinfo)
+
+	if err != nil {
+		return models.Place{}, err
+	}
+	defer db.Close()
+
+	var (
+		id          int64
+		name        string
+		infos       string
+		lastWatched time.Time
+		url         string
+		agendaURL   string
+	)
+
+	stmt, err := db.Prepare("SELECT id, name, infos, url, agenda_url, last_watched FROM place_place WHERE id=$1")
+
+	if err != nil {
+		return models.Place{}, err
+	}
+
+	err = stmt.QueryRow(i).Scan(
+		&id,
+		&name,
+		&infos,
+		&url,
+		&agendaURL,
+		&lastWatched)
+
+	if err != nil {
+		return models.Place{}, err
+	}
+
+	return models.Place{id, name, infos, url, agendaURL, lastWatched}, nil
+}
 
 func GetMuseum(i int) (models.Museum, error) {
 	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
@@ -25,7 +63,9 @@ func GetMuseum(i int) (models.Museum, error) {
 
 	var (
 		id              int64
+		placeID         int64
 		name            string
+		infos           string
 		lastWatched     time.Time
 		url             string
 		agendaURL       string
@@ -33,71 +73,48 @@ func GetMuseum(i int) (models.Museum, error) {
 		exhibitionRegex string
 	)
 
-	stmt, err := db.Prepare("SELECT id, name, url, agenda_url, last_watch, schedule, exhibition_regex FROM place_museum, place_place WHERE place_museum.place_id = place_place.id AND place_museum.id=$1")
+	stmt, err := db.Prepare("SELECT m.id, m.schedule, m.exhibition_regex, p.id, p.name, p.url, p.agenda_url, p.last_watched, p.infos FROM place_museum m, place_place p WHERE m.place_id = p.id AND m.id=$1")
 
 	if err != nil {
 		return models.Museum{}, err
 	}
+
 	err = stmt.QueryRow(i).Scan(
 		&id,
+		&schedule,
+		&exhibitionRegex,
+		&placeID,
 		&name,
 		&url,
 		&agendaURL,
 		&lastWatched,
-		&schedule,
-		&exhibitionRegex)
+		&infos)
 
 	if err != nil {
 		return models.Museum{}, err
 	}
 
-	return models.Museum{id, name, lastWatched, schedule, url, agendaURL, exhibitionRegex}, nil
+	return models.Museum{
+		ID:              id,
+		PlaceID:         placeID,
+		Schedule:        schedule,
+		ExhibitionRegex: exhibitionRegex,
+		Place: models.Place{
+			ID:          placeID,
+			Name:        name,
+			LastWatched: lastWatched,
+			URL:         url,
+			AgendaURL:   agendaURL,
+			Infos:       infos,
+		}}, nil
 }
 
-func (m models.Museum) IsOpened(days ...int) bool {
-	var day int
-	if len(days) == 0 {
-		now := time.Now()
-		day = int(now.Weekday())
-	} else if days[0] >= 0 && days[0] <= 6 {
-		day = days[0]
+func IsOpened(m models.Museum, day int) bool {
+	if day < 0 || day > 6 {
+		return false
 	}
-
-	if len(m.schedule[day]) > 0 {
+	if len(m.Schedule[day]) > 0 {
 		return true
 	}
 	return false
-}
-
-func (m models.Museum) GetExhibitionLinkList() []string {
-	results := make([]string, 0)
-	var link string
-
-	resp, err := http.Get(m.AgendaURL)
-	if err != nil {
-		return results
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	// fmt.Println(body)
-	bodyStr := string(body)
-
-	exibitRegexValue := fmt.Sprintf("?P<value>(%s)", m.exhibition_regex)
-
-	exibitExp := regexp.MustCompile(fmt.Sprintf("((%s))", exibitRegexValue))
-
-	matches := exibitExp.FindAllStringSubmatch(bodyStr, -1)
-	set := make(map[string]bool)
-
-	for _, match := range matches {
-		link = match[valueIndex]
-		if set[link] {
-			continue
-		} else {
-			results = append(results, match[valueIndex])
-			set[link] = true
-		}
-	}
-
-	return results
 }
