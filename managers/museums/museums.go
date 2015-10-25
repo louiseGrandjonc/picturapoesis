@@ -71,9 +71,10 @@ func GetMuseum(i int) (models.Museum, error) {
 		agendaURL       string
 		schedule        fields.MultiTimeSlice
 		exhibitionRegex string
+		lang            string
 	)
 
-	stmt, err := db.Prepare("SELECT m.id, m.schedule, m.exhibition_regex, p.id, p.name, p.url, p.agenda_url, p.last_watched, p.infos FROM place_museum m, place_place p WHERE m.place_id = p.id AND m.id=$1")
+	stmt, err := db.Prepare("SELECT m.id, m.schedule, m.exhibition_regex, m.lang, p.id, p.name, p.url, p.agenda_url, p.last_watched, p.infos FROM place_museum m, place_place p WHERE m.place_id = p.id AND m.id=$1")
 
 	if err != nil {
 		return models.Museum{}, err
@@ -83,6 +84,7 @@ func GetMuseum(i int) (models.Museum, error) {
 		&id,
 		&schedule,
 		&exhibitionRegex,
+		&lang,
 		&placeID,
 		&name,
 		&url,
@@ -99,6 +101,7 @@ func GetMuseum(i int) (models.Museum, error) {
 		PlaceID:         placeID,
 		Schedule:        schedule,
 		ExhibitionRegex: exhibitionRegex,
+		Lang:            lang,
 		Place: models.Place{
 			ID:          placeID,
 			Name:        name,

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/picturapoesis/crawler"
 	"github.com/picturapoesis/managers/museums"
+	// "github.com/picturapoesis/utils"
+	// "github.com/jaytaylor/html2text"
+	// "net/http"
 )
 
 func main() {
@@ -21,9 +24,9 @@ func main() {
 	// fmt.Println(museums.IsOpened(m, 1))
 
 	res, _ := crawler.GetExhibitionLinkList(m)
-	fmt.Print(res)
-	fmt.Print(m.Place.URL)
-	events, _ := crawler.CreateEventFromLinkList(m, res)
-	fmt.Print(events)
+	// fmt.Print(res)
+	// fmt.Print(m.Place.URL)
+	crawler.CreateEventFromLinkList(m, res)
+	// fmt.Print(events)
 	fmt.Println("stop")
 }

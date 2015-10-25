@@ -16,8 +16,7 @@ INSERT INTO place_place (
     url,
     agenda_url,
     name,
-    last_watched,
-    default_lang)
+    last_watched)
 VALUES (
     1,
     1,
@@ -35,7 +34,7 @@ INSERT INTO place_museum (
    schedule,
    place_id,
    exhibition_regex,
-   default_lang)
+   lang)
 VALUES (
     1,
     '{{"10:00:00", "18:00:00"}, {NULL, NULL}, {"10:00:00", "18:00:00"},  {"10:00:00", "18:00:00"},  {"10:00:00", "22:00:00"},  {"10:00:00", "18:00:00"},{"10:00:00", "18:00:00"}}',

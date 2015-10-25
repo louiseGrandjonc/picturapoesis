@@ -14,4 +14,6 @@ type Event struct {
 	DateEnd     time.Time
 	Description string
 	Title       string
+	Lang        string
+	Image       string
 }

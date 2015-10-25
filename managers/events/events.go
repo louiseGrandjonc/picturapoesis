@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/picturapoesis/constants"
+	"github.com/picturapoesis/models"
 )
 
 func FindExistingEventURLList(urlList []string) ([]string, error) {

@@ -25,4 +25,5 @@ type Museum struct {
 	Place           Place
 	Schedule        fields.MultiTimeSlice
 	ExhibitionRegex string
+	Lang            string
 }
