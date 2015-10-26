@@ -10,6 +10,7 @@ import (
 	"github.com/picturapoesis/models"
 	"github.com/picturapoesis/utils"
 
+	"html"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -17,7 +18,7 @@ import (
 )
 
 func GetExhibitionLinkList(m models.Museum) ([]string, error) {
-	results := make([]string, 0)
+	results := []string{}
 	var link string
 
 	resp, err := http.Get(m.Place.AgendaURL)
@@ -42,7 +43,7 @@ func GetExhibitionLinkList(m models.Museum) ([]string, error) {
 		} else {
 			foundURL := strings.TrimPrefix(match[0], "\"")
 			foundURL = strings.TrimSuffix(foundURL, "\"")
-			results = append(results, foundURL)
+			results = append(results, html.UnescapeString(foundURL))
 			set[link] = true
 		}
 	}
@@ -81,16 +82,18 @@ func CrawlEventURL(url string, lang string, baseURL string) (models.Event, error
 	defer resp.Body.Close()
 
 	bodyStr, err := html2text.FromReader(resp.Body)
-
-	fmt.Println(utils.GetFullURL(url, baseURL))
-	dates := utils.RetrieveDatesFromString(bodyStr, lang)
-
-	fmt.Println("returned dates")
-	fmt.Print(dates)
-
 	if err != nil {
 		fmt.Print(err)
 		return eventObject, err
+	}
+
+	dates := utils.RetrieveDatesFromString(bodyStr, lang, article.Article[:50])
+
+	if len(dates) > 0 {
+		eventObject.DateBegin = dates[0]
+		if len(dates) > 1 {
+			eventObject.DateEnd = dates[1]
+		}
 	}
 
 	return eventObject, nil
@@ -101,12 +104,11 @@ func CreateEventFromLinkList(m models.Museum, linkList []string) ([]models.Event
 	existingURLS, err := events.FindExistingEventURLList(linkList)
 
 	toCreateEvents := []models.Event{}
+	toCreate := []string{}
 
 	if err != nil {
 		fmt.Print(err)
 	}
-
-	var toCreate []string
 
 	if len(existingURLS) != 0 {
 		for _, url := range linkList {
@@ -126,6 +128,7 @@ func CreateEventFromLinkList(m models.Museum, linkList []string) ([]models.Event
 	}
 
 	for _, toCreateURL := range toCreate {
+		fmt.Println(toCreateURL)
 		event, err := CrawlEventURL(toCreateURL, m.Lang, m.Place.URL)
 		if err == nil {
 			event.Museum = m
