@@ -3,14 +3,31 @@ package events
 import (
 	"database/sql"
 	"fmt"
-	"strings"
-
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/picturapoesis/constants"
 	"github.com/picturapoesis/models"
+	"strings"
 )
 
 func FindExistingEventURLList(urlList []string) ([]string, error) {
+
+	count := 0
+	for _, val := range urlList {
+		if len(val) != 0 {
+			count += 1
+		}
+	}
+
+	fmt.Print(count)
+
+	args := make([]interface{}, count)
+	for i, url := range urlList {
+		if len(url) != 0 {
+			args[i] = url
+		}
+	}
+
+	fmt.Print(args)
 
 	var existingURLS []string
 
@@ -23,8 +40,14 @@ func FindExistingEventURLList(urlList []string) ([]string, error) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT url FROM event_exhibition WHERE url in ($1)", strings.Join(urlList, ", "))
+	query := fmt.Sprintf("SELECT url FROM event_exhibition WHERE url IN (%s)",
+		strings.Join(strings.Split(strings.Repeat("?", count), ""), ", "))
+
+	stmt, _ := db.Prepare(query)
+	rows, err := stmt.Query(args)
+
 	if err != nil {
+		fmt.Print(err)
 		return existingURLS, err
 	}
 
@@ -32,6 +55,7 @@ func FindExistingEventURLList(urlList []string) ([]string, error) {
 	for rows.Next() {
 		var eventURL string
 		err = rows.Scan(&eventURL)
+		fmt.Print(eventURL)
 		if err == nil {
 			existingURLS = append(existingURLS, eventURL)
 		}
@@ -45,11 +69,9 @@ func FindExistingEventURLList(urlList []string) ([]string, error) {
 	return existingURLS, nil
 }
 
-func BulkCreate(events []models.Event) ([]models.Event, error) {
+func BulkCreate(eventsToCreate []models.Event) ([]models.Event, error) {
 
 	results := []models.Event{}
-
-	valueStrings := make([]string, 0, len(events))
 
 	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
 		constants.DB_USER, constants.DB_PASSWORD, constants.DB_NAME)
@@ -60,24 +82,59 @@ func BulkCreate(events []models.Event) ([]models.Event, error) {
 	}
 	defer db.Close()
 
-	for _, event := range events {
-		valueStr := fmt.Sprintf("(%s, %s, %s, %s, %s, %s, %s)",
-			event.MuseumID,
-			event.URL,
-			event.DateBegin,
-			event.DateEnd,
-			event.Description,
-			event.Title,
-			event.Lang)
-		valueStrings = append(valueStrings, valueStr)
+	txn, err := db.Begin()
+	if err != nil {
+		// log.Fatal(err)
+		return results, err
 	}
 
-	test, err := db.Exec("INSERT INTO event_exhibition (museum_id, url, date_begin, date_end, description, title, lang) VALUES $1", strings.Join(valueStrings, ","))
-
-	fmt.Print(test)
+	stmt, err := txn.Prepare(pq.CopyIn(
+		"event_exhibition",
+		"museum_id",
+		"url",
+		"date_begin",
+		"date_end",
+		"description",
+		"title",
+		"lang"))
 
 	if err != nil {
 		return results, err
+		// log.Fatal(err)
 	}
-	return events, nil
+
+	for _, ev := range eventsToCreate {
+		_, err = stmt.Exec(
+			ev.MuseumID,
+			ev.URL,
+			ev.DateBegin.Format("2006-01-02"),
+			ev.DateEnd.Format("2006-01-02"),
+			ev.Description,
+			ev.Title,
+			ev.Lang)
+		if err != nil {
+			return results, err
+			// log.Fatal(err)
+		}
+	}
+
+	_, err = stmt.Exec()
+	if err != nil {
+		return results, err
+		// log.Fatal(err)
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		return results, err
+		// log.Fatal(err)
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return results, err
+		// log.Fatal(err)
+	}
+
+	return eventsToCreate, nil
 }

@@ -26,7 +26,8 @@ func main() {
 	res, _ := crawler.GetExhibitionLinkList(m)
 	// fmt.Print(res)
 	// fmt.Print(m.Place.URL)
-	crawler.CreateEventFromLinkList(m, res)
+	_, err := crawler.CreateEventFromLinkList(m, res)
+	fmt.Print(err)
 	// fmt.Print(events)
 	fmt.Println("stop")
 }

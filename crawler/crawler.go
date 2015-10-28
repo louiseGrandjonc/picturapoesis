@@ -102,7 +102,6 @@ func CrawlEventURL(url string, lang string, baseURL string) (models.Event, error
 func CreateEventFromLinkList(m models.Museum, linkList []string) ([]models.Event, error) {
 
 	existingURLS, err := events.FindExistingEventURLList(linkList)
-
 	toCreateEvents := []models.Event{}
 	toCreate := []string{}
 
@@ -128,7 +127,6 @@ func CreateEventFromLinkList(m models.Museum, linkList []string) ([]models.Event
 	}
 
 	for _, toCreateURL := range toCreate {
-		fmt.Println(toCreateURL)
 		event, err := CrawlEventURL(toCreateURL, m.Lang, m.Place.URL)
 		if err == nil {
 			event.Museum = m
@@ -137,11 +135,10 @@ func CreateEventFromLinkList(m models.Museum, linkList []string) ([]models.Event
 		}
 	}
 
-	// createdEvents, err := events.BulkCreate(toCreateEvents)
+	createdEvents, err := events.BulkCreate(toCreateEvents)
 
-	// if err != nil {
-	// 	return createdEvents, err
-	// }
-
-	return toCreateEvents, nil
+	if err != nil {
+		return []models.Event{}, err
+	}
+	return createdEvents, nil
 }
