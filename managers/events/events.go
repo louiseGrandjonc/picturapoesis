@@ -3,51 +3,31 @@ package events
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/picturapoesis/constants"
 	"github.com/picturapoesis/models"
-	"strings"
 )
 
 func FindExistingEventURLList(urlList []string) ([]string, error) {
-
-	count := 0
-	for _, val := range urlList {
-		if len(val) != 0 {
-			count += 1
-		}
-	}
-
-	fmt.Print(count)
-
-	args := make([]interface{}, count)
-	for i, url := range urlList {
-		if len(url) != 0 {
-			args[i] = url
-		}
-	}
-
-	fmt.Print(args)
 
 	var existingURLS []string
 
 	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
 		constants.DB_USER, constants.DB_PASSWORD, constants.DB_NAME)
-	db, err := sql.Open("postgres", dbinfo)
+	db, err := sqlx.Open("postgres", dbinfo)
 
 	if err != nil {
 		return existingURLS, err
 	}
 	defer db.Close()
 
-	query := fmt.Sprintf("SELECT url FROM event_exhibition WHERE url IN (%s)",
-		strings.Join(strings.Split(strings.Repeat("?", count), ""), ", "))
+	query, args, err := sqlx.In("SELECT url FROM event_exhibition WHERE url IN (?);", urlList)
 
-	stmt, _ := db.Prepare(query)
-	rows, err := stmt.Query(args)
+	query = db.Rebind(query)
+	rows, err := db.Query(query, args...)
 
 	if err != nil {
-		fmt.Print(err)
 		return existingURLS, err
 	}
 
@@ -55,7 +35,6 @@ func FindExistingEventURLList(urlList []string) ([]string, error) {
 	for rows.Next() {
 		var eventURL string
 		err = rows.Scan(&eventURL)
-		fmt.Print(eventURL)
 		if err == nil {
 			existingURLS = append(existingURLS, eventURL)
 		}

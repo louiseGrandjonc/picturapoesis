@@ -4,13 +4,11 @@ import (
 	"fmt"
 
 	textapi "github.com/AYLIEN/aylien_textapi_go"
-	"github.com/jaytaylor/html2text"
 	"github.com/picturapoesis/constants"
 	"github.com/picturapoesis/managers/events"
 	"github.com/picturapoesis/models"
 	"github.com/picturapoesis/utils"
 
-	"html"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -18,7 +16,7 @@ import (
 )
 
 func GetExhibitionLinkList(m models.Museum) ([]string, error) {
-	results := []string{}
+	results := make([]string, 0)
 	var link string
 
 	resp, err := http.Get(m.Place.AgendaURL)
@@ -43,7 +41,7 @@ func GetExhibitionLinkList(m models.Museum) ([]string, error) {
 		} else {
 			foundURL := strings.TrimPrefix(match[0], "\"")
 			foundURL = strings.TrimSuffix(foundURL, "\"")
-			results = append(results, html.UnescapeString(foundURL))
+			results = append(results, foundURL)
 			set[link] = true
 		}
 	}
@@ -66,50 +64,26 @@ func CrawlEventURL(url string, lang string, baseURL string) (models.Event, error
 		return models.Event{}, err
 	}
 
-	eventObject := models.Event{
+	return models.Event{
 		URL:         url,
 		Description: article.Article,
 		Title:       article.Title,
 		Image:       article.Image,
 		Lang:        lang,
-	}
-
-	resp, err := http.Get(utils.GetFullURL(url, baseURL))
-
-	if err != nil {
-		return eventObject, err
-	}
-	defer resp.Body.Close()
-
-	bodyStr, err := html2text.FromReader(resp.Body)
-	if err != nil {
-		fmt.Print(err)
-		return eventObject, err
-	}
-
-	dates := utils.RetrieveDatesFromString(bodyStr, lang, article.Article[:50])
-
-	if len(dates) > 0 {
-		eventObject.DateBegin = dates[0]
-		if len(dates) > 1 {
-			eventObject.DateEnd = dates[1]
-		}
-	}
-
-	return eventObject, nil
+	}, nil
 }
 
 func CreateEventFromLinkList(m models.Museum, linkList []string) ([]models.Event, error) {
 
 	existingURLS, err := events.FindExistingEventURLList(linkList)
-	toCreateEvents := []models.Event{}
-	toCreate := []string{}
 
-	createEvents := false
+	toCreateEvents := []models.Event{}
 
 	if err != nil {
 		fmt.Print(err)
 	}
+
+	var toCreate []string
 
 	if len(existingURLS) != 0 {
 		for _, url := range linkList {
@@ -121,30 +95,27 @@ func CreateEventFromLinkList(m models.Museum, linkList []string) ([]models.Event
 			}
 
 			if !found {
-				createEvents = true
 				toCreate = append(toCreate, url)
 			}
 		}
 	} else {
-		createEvents = true
 		toCreate = linkList
 	}
 
-	if createEvents {
-		for _, toCreateURL := range toCreate {
-			event, err := CrawlEventURL(toCreateURL, m.Lang, m.Place.URL)
-			if err == nil {
-				event.Museum = m
-				event.MuseumID = m.ID
-				toCreateEvents = append(toCreateEvents, event)
-			}
+	for _, toCreateURL := range toCreate {
+		event, err := CrawlEventURL(toCreateURL, m.Lang, m.Place.URL)
+		if err == nil {
+			event.Museum = m
+			event.MuseumID = m.ID
+			toCreateEvents = append(toCreateEvents, event)
 		}
-		createdEvents, err := events.BulkCreate(toCreateEvents)
-
-		if err != nil {
-			return []models.Event{}, err
-		}
-		return createdEvents, nil
 	}
-	return []models.Event{}, nil
+
+	// createdEvents, err := events.BulkCreate(toCreateEvents)
+
+	// if err != nil {
+	// 	return createdEvents, err
+	// }
+
+	return toCreateEvents, nil
 }

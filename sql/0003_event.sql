@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS event_exhibition (
     date_begin date,
     date_end date,
     description text,
+    description_vector tsvector,
     title varchar(250),
     lang varchar(10),
     CONSTRAINT event_exhibition_pkey PRIMARY KEY (id)
