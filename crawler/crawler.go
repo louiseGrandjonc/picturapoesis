@@ -3,8 +3,8 @@ package crawler
 import (
 	"fmt"
 
-	textapi "github.com/AYLIEN/aylien_textapi_go"
 	"github.com/jaytaylor/html2text"
+	textapi "github.com/louiseGrandjonc/aylien_textapi_go"
 	"github.com/picturapoesis/constants"
 	"github.com/picturapoesis/managers/events"
 	"github.com/picturapoesis/models"
@@ -59,7 +59,7 @@ func CrawlEventURL(url string, lang string, baseURL string) (models.Event, error
 		panic(err)
 	}
 
-	params := &textapi.ExtractParams{URL: utils.GetFullURL(url, baseURL), BestImage: true}
+	params := &textapi.ExtractParams{URL: utils.GetFullURL(url, baseURL), BestImage: true, Language: lang}
 	article, err := client.Extract(params)
 
 	if err != nil {

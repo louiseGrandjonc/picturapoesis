@@ -5,11 +5,10 @@ CREATE OR REPLACE FUNCTION description_vector_trg() RETURNS TRIGGER AS $BODY$
 DECLARE eventlang text;
 BEGIN
   SELECT lang_conversion(NEW.lang) INTO eventlang;
-  NEW.description_vector = to_tsvector(eventlang::regconfig, NEW.description);
+  NEW.description_vector = setweight(to_tsvector(eventlang::regconfig, COALESCE(NEW.title, '')::text), 'A') || setweight(to_tsvector(eventlang::regconfig, NEW.description), 'B');
   RETURN NEW;
 END;
 $BODY$ LANGUAGE plpgsql;
-
 
 --
 -- Declaration des triggers
